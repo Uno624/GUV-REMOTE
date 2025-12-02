@@ -40,7 +40,7 @@ uint8_t speed = 0;
 int stae = 0;
 
 const byte addressTX[6] = "John";
-const byte addressTXPos[6] = "JohnP";
+//const byte addressTXPos[6] = "JohnPo";
 
 const byte addressRX[6] = "Artur";
 
@@ -67,14 +67,18 @@ struct __attribute__((packed)) SoilPacket {
   float    lat;
   float    lon;
   int16_t  au;
+  int16_t  speed;
 };
 SoilPacket dataTX;
+
 /*
 struct GNSSPayload {
   float    lat;
   float    lon;
   int16_t  au;
+  int16_t  speed;
 };
+
 GNSSPayload dataTXPosition;*/
 
 struct Payload {
@@ -121,7 +125,6 @@ void idle(){
   analogWrite(38, 0);
   analogWrite(39, 0);
   analogWrite(42, 0);
-  stae = 0;
 }
 
 void backward(){
@@ -138,6 +141,7 @@ void backward(){
 void forward(){
   digitalWrite(36, 0);
   digitalWrite(37, 1);
+  
   digitalWrite(40, 0);
   digitalWrite(41, 1);
   analogWrite(35, updateSpeedXY());
@@ -146,10 +150,11 @@ void forward(){
   analogWrite(42, updateSpeedXY());
 }
 void spinright(){
-  digitalWrite(36, 0);
-  digitalWrite(37, 1);
-  digitalWrite(40, 1);
-  digitalWrite(41, 0);
+  digitalWrite(36, 1);
+  digitalWrite(37, 0);
+  digitalWrite(40, 0);
+  digitalWrite(41, 1);
+  
   analogWrite(35, updateSpeedXY());
   analogWrite(38, updateSpeedXY());
   analogWrite(39, updateSpeedXY());
@@ -157,10 +162,11 @@ void spinright(){
 }
 
 void spinleft(){
-  digitalWrite(36, 1);
-  digitalWrite(37, 0);
-  digitalWrite(40, 0);
-  digitalWrite(41, 1);
+  digitalWrite(36, 0);
+  digitalWrite(37, 1);
+  digitalWrite(40, 1);
+  digitalWrite(41, 0);
+
   analogWrite(35, updateSpeedXY());
   analogWrite(38, updateSpeedXY());
   analogWrite(39, updateSpeedXY());
@@ -265,14 +271,6 @@ void loop() {
   uint8_t result;
   ARM = dataRX.ARMstatus;
   Resrc = dataRX.Resrcstatus;
-  idle();
-
- /* while (ss.available() > 0) {
-    gps.encode(ss.read());
-    dataTXPosition.lat = gps.location.lat();
-    dataTXPosition.lon = gps.location.lng();
-    dataTXPosition.au  = gps.altitude.meters();
-  }*/
 
   // ===== 5) รับจอยจาก RF24 ตัวอื่น =====
   if (radioRX.available()) {
@@ -292,15 +290,21 @@ void loop() {
     Serial.print(" Resrc:");   Serial.print(Resrc);
     Serial.print(" servo:");   Serial.print(AngleResrcControll());
     Serial.print(" tmp:");   Serial.print((dataTX.tmp10));
-    Serial.print(" lat:");   Serial.print(dataTX.lat);
-    Serial.print(" lon:");   Serial.print(dataTX.lon);
+    Serial.print(" lat:");   Serial.print(dataTX.lat,6);
+    Serial.print(" lon:");   Serial.print(dataTX.lon,6);
     Serial.print(" au:");   Serial.print(dataTX.au);
     Serial.print(" airtmp:");   Serial.println((dataTX.t10));
 
-    if (now - lastDATARXPOSEAD >= 500){
+    if (now - lastDATARXPOSEAD >= 100){
       lastDATARXPOSEAD = now;
-      radioTX.openWritingPipe(addressTX);
-      bool ok = radioTX.write(&dataTX, sizeof(dataTX));
+     while (ss.available() > 0) {
+    gps.encode(ss.read());
+    dataTX.lat = gps.location.lat();
+    dataTX.lon = gps.location.lng();
+    dataTX.au  = gps.altitude.meters();
+    dataTX.speed = gps.speed.kmph();
+  }
+    bool ok = radioTX.write(&dataTX, sizeof(dataTX));
     }
  ////////////////MODE สำรวจ//////////////////////
   if (ARM == 1) {
@@ -310,6 +314,7 @@ void loop() {
     else if (stae == 2) {spinleft();}
     else if (stae == 1) {spinright();}
     else {idle();}
+
   }
  ////////////////MODE ตวรจ//////////////////////
   else if (Resrc == 1){
