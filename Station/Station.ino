@@ -3,6 +3,12 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <WiFi.h>
+#include <HTTPClient.h>
+
+const char* ssid = "nattakarnswe";
+const char* password = "08306068832";
+const char* serverName = "http://192.168.1.3/datasensor.php"; // เช่น http://localhost/TestInput_db.php
 
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -42,6 +48,8 @@ const byte addressRXPos[6] = "JohnP";
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
+bool ResrcAir;
+
 // payload ที่จะส่ง
 struct Payload {
   uint8_t  b1;
@@ -69,6 +77,8 @@ struct __attribute__((packed)) SoilPacket {
   float    lat;
   float    lon;
   int16_t  au;
+  int16_t  speed;
+
 };SoilPacket dataRX;
 
     float lux,t,h,hum,tmp,ph,au;   
@@ -121,6 +131,16 @@ void setup() {
   radioRX.startListening(); 
 
   display.clearDisplay();
+
+    while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    display.setTextSize(1);
+    display.setCursor(32, 32);
+    display.println("Connecting to WiFi...");
+  }
+  display.println("Connected to WiFi");
+  display.clearDisplay();
+}
 }
 unsigned long PoRX   = 0;
 unsigned long datasoil   = 0;
@@ -128,6 +148,7 @@ unsigned long datamonitor   = 0;
 unsigned long status   = 0;
 
 byte pipeNum;
+bool TXok;
 
 void loop() {
 
@@ -143,17 +164,7 @@ void loop() {
   dataTX.joyY = analogRead(AIX_Y);
 
   // ส่ง payload
-  bool ok = radioTX.write(&dataTX, sizeof(dataTX));
-  // debug
- /* Serial.print("TX -> ");
-  Serial.print("B1:");   Serial.print(dataTX.b1);
-  Serial.print(" B2:");  Serial.print(dataTX.b2);
-  Serial.print(" B3:");  Serial.print(dataTX.b3);
-  Serial.print(" TRG:"); Serial.print(dataTX.trig);
-  Serial.print(" X:");   Serial.print(dataTX.joyX);
-  Serial.print(" Y:");   Serial.print(dataTX.joyY);
-  Serial.print("  status:");
-  Serial.print(ok ? "OK" : "FAIL \n\t");*/
+  TXok = radioTX.write(&dataTX, sizeof(dataTX));
 
  if (now - PoRX >= 50) {
   PoRX = now;
@@ -169,9 +180,18 @@ void loop() {
    status = now;
         static bool lastTrigARM = 0;
         static bool lastTrigResrc = 0;
+        static bool lastTrigResrcAir = 0;
 
         bool pressedARM = (dataTX.joyY == 0 && dataTX.trig == 1);
         bool pressedResrc = (dataTX.b2 == 1 && dataTX.trig == 1);
+         bool pressedResrcAir;
+
+          if(dataTX.Resrcstatus == 1) {
+          pressedResrcAir = dataTX.trig;
+              if (pressedResrcAir && !lastTrigResrcAir) {
+            ResrcAir = !ResrcAir;
+           }
+          }
 
         if (pressedARM && !lastTrigARM) {
             dataTX.ARMstatus = !dataTX.ARMstatus;     
@@ -181,12 +201,11 @@ void loop() {
         }
        lastTrigARM = pressedARM; // เก็บสถานะปุ่มไว้เทียบรอบหน้า
       lastTrigResrc = pressedResrc;
+      lastTrigResrcAir = pressedResrcAir;
 
       if(dataTX.ARMstatus) dataTX.Resrcstatus = 0;
       if(dataTX.Resrcstatus) dataTX.ARMstatus = 0;
  }
-
-
 
    if (now - datamonitor >= 100){
      datamonitor = now;
@@ -197,84 +216,144 @@ void loop() {
      tmp = dataRX.tmp10 / 10.0f;
      ph  = dataRX.ph10  / 10.0f;
      au  = dataRX.au    / 10.0f;
-
-  /*display.setTextSize(1);
-  display.setTextColor(WHITE);
-  display.setCursor(0, 0);
-  //display.print(" Lat = ");  display.println(dataRX.lat);
-    display.print(" Hum= "); display.println(hum);
-    display.print(" Tmp= "); display.println(tmp);
-    display.print(" pH = "); display.println(ph);
-    display.print(" EC = "); display.println(dataRX.ec);
-    display.print(" N = ");  display.println(dataRX.n);
-    display.print(" P  = "); display.println(dataRX.p);
-    display.print(" K  = "); display.println(dataRX.k);
-    display.display(); 
-    display.clearDisplay();*/
-
-   /* float plat = dataRXPosition.lat;
-    float plon = dataRXPosition.lon;
-    float pau = dataRXPosition.au;
-    Serial.print("RX Packet");
-    Serial.print("/t lux  = "); Serial.print(lux);
-    Serial.print("/t t  = "); Serial.print(t);
-    Serial.print("/t h  = "); Serial.print(h);
-    Serial.print("/t Hum= "); Serial.print(hum);
-    Serial.print("/t Tmp= "); Serial.print(tmp);
-    Serial.print("/t pH = "); Serial.print(ph);
-    Serial.print("/t EC = "); Serial.print(dataRX.ec);
-    Serial.print("/t N = "); Serial.print(dataRX.n);
-    Serial.print("/t P  = "); Serial.print(dataRX.p);
-    Serial.print("/t K  = "); Serial.print(dataRX.k);
-    Serial.print("  Lat= "); Serial.print(dataRX.lat);
-    Serial.print("  Lon= "); Serial.print(dataRX.lon);
-    Serial.print("  Au = "); Serial.print(dataRX.au);
-    Serial.print(" pipeNum = "); Serial.print(pipeNum);
-
-    Serial.println();*/
    }
 }
 
- void screemod(){
-  display.setTextSize(1.8);
+void drawArmMode() {
+  display.setTextSize(1);
+  display.setCursor(0, 15);
+  display.print(" turn : ");
+
+  if      (dataTX.joyY >= 1772 + 20) display.println(" forward ");
+  else if (dataTX.joyY <= 1772 - 20) display.println(" backward ");
+  else if (dataTX.joyX >= 1772 + 20) display.println(" spinleft ");
+  else if (dataTX.joyX <= 1772 - 20) display.println(" spinright ");
+  else                               display.println(" stop ");
+
+  display.print(" speed : ");
+  display.print(dataRX.speed);
+  display.println(" km/h ");
+
+  display.setCursor(0, 55);
+  display.print(" TX ");
+  display.println(TXok ? "LIVE" : "LOST");
+}
+
+void drawSoilMode() {
+  display.setTextSize(1);
+  display.setCursor(0, 15);
+  //display.print(" Lat = ");  display.println(dataRX.lat);
+  display.print(" Hum= "); display.println(hum);
+  display.print(" Tmp= "); display.println(tmp);
+  display.print(" pH = "); display.println(ph);
+  display.print(" EC = "); display.println(dataRX.ec);
+
+  display.setCursor(70, 15);
+  display.print(" N = "); display.println(dataRX.n);
+  display.setCursor(70, 23);
+  display.print(" P = "); display.println(dataRX.p);
+  display.setCursor(70, 31);
+  display.print(" K = "); display.println(dataRX.k);
+
+  display.setCursor(0, 55);
+  display.print(" TX ");
+  display.println(TXok ? "LIVE" : "LOST");
+}
+
+void drawAirMode() {
+  display.setTextSize(1);
+  display.setCursor(0, 15);
+  display.print(" LUX = "); display.println(lux);
+  display.print(" Hum = "); display.println(h);
+  display.print(" Tmp = "); display.println(t);
+
+  display.setCursor(0, 55);
+  display.print(" TX ");
+  display.println(TXok ? "LIVE" : "LOST");
+}
+
+void drawIdleMode() {
+  display.setTextSize(1);
+  display.setCursor(0, 15);
+  display.print(" Lat : ");  display.println(dataRX.lat, 6);
+  display.print(" Lon : ");  display.println(dataRX.lon, 6);
+
+  display.setCursor(0, 55);
+  display.print(" TX ");
+  display.println(TXok ? "LIVE" : "LOST");
+}
+
+// ฟังก์ชันหลัก
+void screemod() {
+  display.clearDisplay();
+
   display.setTextColor(WHITE);
+
+  display.setTextSize(1);              // เดิม 1.8 → ใช้ 2 แทน
   display.setCursor(0, 0);
   display.print(" mode :");
-    if(dataTX.ARMstatus){
+
+  if (dataTX.ARMstatus) {
     display.println(" ARM ");
-    display.setTextSize(1);
-    display.setCursor(0, 15);
-    display.print(" turn : ");
-     if     (dataTX.joyY >= 1772+20){display.println(" forward ");}
-     else if(dataTX.joyY <= 1772-20){display.println(" backward ");} 
-     else if(dataTX.joyX >= 1772+20){display.println(" spinright ");}
-     else if(dataTX.joyX <= 1772-20){display.println(" spinleft ");}
-     else{display.println(" stop ");}  
-    display.display(); 
-    display.clearDisplay();
-      }
-    else if(dataTX.Resrcstatus){
-    display.println(" Soilsearch ");
-    display.setTextSize(1);
-    display.setCursor(0, 15);
-    display.print(" Lat = ");  display.println(dataRX.lat);
-    display.print(" Hum= "); display.println(hum);
-    display.print(" Tmp= "); display.println(tmp);
-    display.print(" pH = "); display.println(ph);
-    display.print(" EC = "); display.println(dataRX.ec);
-    display.print(" N = ");  display.println(dataRX.n);
-    display.print(" P  = "); display.println(dataRX.p);
-    display.print(" K  = "); display.println(dataRX.k);
-    display.display(); 
-    display.clearDisplay();
-      }
-    else{display.println(" idle ");
-        display.setTextSize(1);
-        display.setCursor(0, 15);
-        display.print(" Lat = ");  display.println(dataRX.lat);
-        display.print(" lon = ");  display.println(dataRX.lon);
-        display.display(); 
-        display.clearDisplay();
+    drawArmMode();
+
+  } else if (dataTX.Resrcstatus && ResrcAir == 0) {
+    display.println(" ResrcSoil ");
+    drawSoilMode();
+
+  } else if (ResrcAir == 1) {
+    display.println(" ResrcAir ");
+    drawAirMode();
+
+  } else {
+    // idle
+    display.println(" idle ");
+    drawIdleMode();
+  }
+
+  display.display();
+}
+ 
+ void DTS(){
+   if (WiFi.status() == WL_CONNECTED) {
+  HTTPClient http;
+
+  http.begin(serverName); 
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+
+  String postData = "lux="   + String(lux)   +
+                    "&t10="  + String(t10)  +
+                    "&h10="  + String(h10)  +
+                    "&hum10="+ String(hum10)+
+                    "&tmp10="+ String(tmp10)+
+                    "&ph10=" + String(ph10) +
+                    "&ec="   + String(ec)   +
+                    "&n="    + String(n)    +
+                    "&p="    + String(p)    +
+                    "&k="    + String(k)    +
+                    "&lat="  + String(lat, 6) +
+                    "&lon="  + String(lon, 6) +
+                    "&au="   + String(au);
+
+  int httpResponseCode = http.POST(postData);
+
+  Serial.print("POST Data: ");
+  Serial.println(postData);
+  
+   if (httpResponseCode > 0) {
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+
+      String response = http.getString();
+      Serial.println("Server response: " + response);
+    } else {
+      Serial.print("Error code: ");
+      Serial.println(httpResponseCode);
     }
 
+    http.end();
+  } else {
+    Serial.println("WiFi Disconnected");
+  }
  }
+}
