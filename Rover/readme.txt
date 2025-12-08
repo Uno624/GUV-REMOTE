@@ -9,4 +9,5 @@ int8: สามารถเก็บค่าได้ตั้งแต่ -128
 
 const เป็นค่าคงที่ เปลี่ยนไม่ได้
 
+https://chatgpt.com/s/t_69371fd89d188191ba4e40513c1e6a8a
 https://chatgpt.com/s/t_69371f4adb508191b3d00feeae83cadd
