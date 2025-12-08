@@ -1,0 +1,78 @@
+body {
+    font-family: "Segoe UI", Tahoma, sans-serif; /* กำหนดฟอนต์หลักของเว็บ */
+    margin: 0;   /* ลบระยะขอบรอบนอกของ body */
+    padding: 0;  /* ลบระยะห่างภายใน body */
+    background: #f4f6f9; /* สีพื้นหลังของหน้าเว็บ */
+    color: #333; /* สีตัวอักษรหลัก */
+}
+
+header {
+    background: #2c3e50; /* สีพื้นหลังของ header */
+    color: white;        /* สีตัวอักษรใน header */
+    padding: 20px;       /* ระยะห่างภายใน header */
+    text-align: center;  /* จัดข้อความให้อยู่ตรงกลาง */
+}
+
+section {
+    margin: 20px auto;   /* ระยะห่างรอบ section และจัดให้อยู่กลาง */
+    padding: 20px;       /* ระยะห่างภายใน section */
+    max-width: 900px;    /* กำหนดความกว้างสูงสุด */
+    background: white;   /* สีพื้นหลังของ section */
+    border-radius: 10px; /* มุมโค้งมน */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1); /* เงาเบา ๆ รอบกล่อง */
+}
+
+.control-panel button {
+    padding: 10px 20px;  /* ขนาดปุ่ม */
+    margin: 5px;         /* ระยะห่างระหว่างปุ่ม */
+    border-radius: 8px;  /* มุมโค้งมนของปุ่ม */
+    border: none;        /* ไม่มีเส้นขอบ */
+    font-size: 16px;     /* ขนาดตัวอักษรในปุ่ม */
+    cursor: pointer;     /* เปลี่ยนเมาส์เป็นรูปมือเมื่อชี้ */
+    color: white;        /* สีตัวอักษรในปุ่ม */
+}
+
+/* สีของปุ่มแต่ละคำสั่ง */
+.forward { background-color: #4CAF50; }   /* เขียว เดินหน้า */
+.left { background-color: #FF9800; }      /* ส้ม หันซ้าย */
+.right { background-color: #2196F3; }     /* น้ำเงิน หันขวา */
+.backward { background-color: #9C27B0; }  /* ม่วง ถอยหลัง */
+.stop { background-color: #f44336; }      /* แดง หยุดนิ่ง */
+
+.control-panel button:hover { opacity: 0.85; } /* เอฟเฟกต์ hover: ปุ่มจางลงเล็กน้อย */
+
+.sensor-table {
+    border-collapse: collapse; /* รวมเส้นขอบตารางให้เป็นเส้นเดียว */
+    width: 100%;               /* ตารางเต็มความกว้าง */
+    margin-top: 10px;          /* ระยะห่างด้านบน */
+    font-size: 14px;           /* ขนาดตัวอักษรในตาราง */
+}
+
+.sensor-table th, .sensor-table td {
+    border: 1px solid #ddd;    /* เส้นขอบสีเทาอ่อน */
+    padding: 8px;              /* ระยะห่างภายในเซลล์ */
+    text-align: center;        /* จัดข้อความตรงกลาง */
+}
+
+.sensor-table th {
+    background-color: #2c3e50; /* สีพื้นหลังหัวตาราง */
+    color: white;              /* สีตัวอักษรหัวตาราง */
+}
+
+.sensor-table tr:nth-child(even) { background-color: #f9f9f9; } /* แถวคู่เป็นสีเทาอ่อน */
+.sensor-table tr:hover { background-color: #e0f7fa; }           /* เมื่อ hover แถวจะเปลี่ยนเป็นสีฟ้าอ่อน */
+
+video {
+    width: 100%;               /* วิดีโอเต็มความกว้าง container */
+    max-width: 600px;          /* กำหนดความกว้างสูงสุด */
+    border: 2px solid #333;    /* เส้นขอบสีเข้ม */
+    border-radius: 8px;        /* มุมโค้งมน */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3); /* เงารอบวิดีโอ */
+}
+
+.control-msg {
+    margin-top: 15px;          /* ระยะห่างด้านบนข้อความ */
+    font-size: 18px;           /* ขนาดตัวอักษร */
+    font-weight: bold;         /* ตัวหนา */
+    color: #2c3e50;            /* สีข้อความ */
+}
