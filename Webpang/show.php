@@ -3,11 +3,10 @@ include 'db.php'; // เชื่อมต่อฐานข้อมูล โ�
 
 // ดึงข้อมูลจากตาราง sensor_data โดยเลือกคอลัมน์ที่ต้องการ และเรียงลำดับจากใหม่สุด (DESC)
 // จำกัดจำนวนแถวที่ดึงมาแค่ 10 แถวล่าสุด
-$sql = "SELECT id, Lux, Temperature, Humidity, Soil_Temp, Soil_Hum, PH, Soil_EC, 
-               Nitrogen, Phosphorus, Potassium, Latitude, Longitude, Altitude, created_at 
+$sql = "SELECT id, lux, airtmp, airhum, soilhum, soiltmp, soilph, soilec, soiln, soilp, soilk, lat, lon, au, created_at
         FROM sensor_data 
         ORDER BY created_at DESC 
-        LIMIT 10";
+        LIMIT 500";;
 
 // รันคำสั่ง SQL และเก็บผลลัพธ์ไว้ในตัวแปร $result
 $result = $conn->query($sql); // ต้องอยู่ก่อนปิด connection
@@ -40,19 +39,19 @@ if ($result->num_rows > 0) {
     while($row = $result->fetch_assoc()) {
         echo "<tr>";
         echo "<td>".$row['id']."</td>";
-        echo "<td>".$row['Lux']."</td>";
-        echo "<td>".$row['Temperature']."</td>";
-        echo "<td>".$row['Humidity']."</td>";
-        echo "<td>".$row['Soil_Temp']."</td>";
-        echo "<td>".$row['Soil_Hum']."</td>";
-        echo "<td>".$row['PH']."</td>";
-        echo "<td>".$row['Soil_EC']."</td>";
-        echo "<td>".$row['Nitrogen']."</td>";
-        echo "<td>".$row['Phosphorus']."</td>";
-        echo "<td>".$row['Potassium']."</td>";
-        echo "<td>".$row['Latitude']."</td>";
-        echo "<td>".$row['Longitude']."</td>";
-        echo "<td>".$row['Altitude']."</td>";
+        echo "<td>".$row['lux']."</td>";
+        echo "<td>".$row['airtmp']."</td>";
+        echo "<td>".$row['airhum']."</td>";
+        echo "<td>".$row['soilhum']."</td>";
+        echo "<td>".$row['soiltmp']."</td>";
+        echo "<td>".$row['soilph']."</td>";
+        echo "<td>".$row['soilec']."</td>";
+        echo "<td>".$row['soiln']."</td>";
+        echo "<td>".$row['soilp']."</td>";
+        echo "<td>".$row['soilk']."</td>";
+        echo "<td>".$row['lat']."</td>";
+        echo "<td>".$row['lon']."</td>";
+        echo "<td>".$row['au']."</td>";
         echo "<td>".$row['created_at']."</td>";
         echo "</tr>";
     }
