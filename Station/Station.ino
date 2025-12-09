@@ -6,9 +6,9 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 
-const char* ssid = "nattakarnswe";
-const char* password = "08306068832";
-const char* serverName = "http://192.168.1.3/datasensor.php"; // เช่น http://localhost/TestInput_db.php
+const char* ssid = "UMA";
+const char* password = "0836068832";
+const char* serverName = "http://10.179.254.128/datasensor.php"; // เช่น http://localhost/TestInput_db.php
 
 
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
@@ -81,7 +81,7 @@ struct __attribute__((packed)) SoilPacket {
 
 };SoilPacket dataRX;
 
-    float lux,t,h,hum,tmp,ph,au;   
+    float lux,t,h,hum,tmp,ph,ec,n,k,p,au;   
 /*
 struct GNSSPayload {
   float    lat;
@@ -95,8 +95,8 @@ void setup() {
   Serial.begin(115200);
   display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
   // --- ปุ่ม ---
-  pinMode(BUTTON1, INPUT_PULLDOWN);
-  pinMode(BUTTON2, INPUT_PULLDOWN);
+  pinMode(BUTTON1, INPUT);
+  pinMode(BUTTON2, INPUT);
   pinMode(BUTTON3, INPUT_PULLDOWN);
   pinMode(TRIGGER, INPUT_PULLDOWN);
 
@@ -130,19 +130,12 @@ void setup() {
   radioRX.openReadingPipe(1, addressRX);
   radioRX.startListening(); 
 
+ initWiFi();
   display.clearDisplay();
+}
 
-    while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    display.setTextSize(1);
-    display.setCursor(32, 32);
-    display.println("Connecting to WiFi...");
-  }
-  display.println("Connected to WiFi");
-  display.clearDisplay();
-}
-}
 unsigned long PoRX   = 0;
+unsigned long DTSED   = 0;
 unsigned long datasoil   = 0;
 unsigned long datamonitor   = 0;
 unsigned long status   = 0;
@@ -153,7 +146,7 @@ bool TXok;
 void loop() {
 
   unsigned long now = millis();
-
+  
   screemod();
 
   dataTX.b1   = digitalRead(BUTTON1);
@@ -162,6 +155,14 @@ void loop() {
   dataTX.trig = digitalRead(TRIGGER);
   dataTX.joyX = analogRead(AIX_X);
   dataTX.joyY = analogRead(AIX_Y);
+
+  Serial.print("b1 "); Serial.print(dataTX.b1);
+  Serial.print(" b2 "); Serial.print(dataTX.b2);
+  Serial.print(" b3 "); Serial.print(dataTX.b3);
+  Serial.print(" trig "); Serial.print(dataTX.trig);
+  Serial.print(" joyX "); Serial.print(dataTX.joyX);
+  Serial.print(" njoyY "); Serial.println(dataTX.joyY);
+
 
   // ส่ง payload
   TXok = radioTX.write(&dataTX, sizeof(dataTX));
@@ -172,8 +173,20 @@ void loop() {
   if (radioRX.available(&pipeNum)) {
     if (pipeNum == 1) {
       radioRX.read(&dataRX, sizeof(dataRX));
+     lux   = dataRX.lux   / 10.0f;
+     t   = dataRX.t10   / 10.0f;
+     h   = dataRX.h10   / 10.0f;
+     hum = dataRX.hum10 / 100.0f;
+     tmp = dataRX.tmp10 / 100.0f;
+     ph  = dataRX.ph10  / 100.0f;
+     ec  = dataRX.ec    / 10.0f;
+     n   = dataRX.n     / 10.0f;
+     p   = dataRX.p     / 10.0f;
+     k   = dataRX.k     / 10.0f;
+     au  = dataRX.au;
     }
    }
+
  }
 
  if (now - status >= 50){
@@ -206,17 +219,6 @@ void loop() {
       if(dataTX.ARMstatus) dataTX.Resrcstatus = 0;
       if(dataTX.Resrcstatus) dataTX.ARMstatus = 0;
  }
-
-   if (now - datamonitor >= 100){
-     datamonitor = now;
-     lux   = dataRX.lux   / 10.0f;
-     t   = dataRX.t10   / 10.0f;
-     h   = dataRX.h10   / 10.0f;
-     hum = dataRX.hum10 / 10.0f;
-     tmp = dataRX.tmp10 / 10.0f;
-     ph  = dataRX.ph10  / 10.0f;
-     au  = dataRX.au    / 10.0f;
-   }
 }
 
 void drawArmMode() {
@@ -299,10 +301,23 @@ void screemod() {
 
   } else if (dataTX.Resrcstatus && ResrcAir == 0) {
     display.println(" ResrcSoil ");
+        unsigned long now = millis();
+            if(now - DTSED >= 100){
+       if (dataTX.b1 == 1){
+    DTS();
+   }
+  }
     drawSoilMode();
 
   } else if (ResrcAir == 1) {
     display.println(" ResrcAir ");
+    unsigned long now = millis();
+    if(now - DTSED >= 100){
+      DTSED = now;
+       if (dataTX.b1 == 1){
+    DTS();
+     }
+    }
     drawAirMode();
 
   } else {
@@ -318,42 +333,51 @@ void screemod() {
    if (WiFi.status() == WL_CONNECTED) {
   HTTPClient http;
 
-  http.begin(serverName); 
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  // สร้าง URL แบบ GET
+  String url = String(serverName) + "?lux=" + String(lux) +
+               "&airtmp="  + String(t) +
+               "&airhum="  + String(h) +
+               "&soilhum=" + String(hum) +
+               "&soiltmp=" + String(tmp) +
+               "&soilph="  + String(ph) +
+               "&soilec="  + String(ec) +
+               "&soiln="   + String(n) +
+               "&soilp="   + String(p) +
+               "&soilk="   + String(k) +
+               "&lat="     + String(dataRX.lat, 6) +
+               "&lon="     + String(dataRX.lon, 6) +
+               "&au="      + String(au);
 
-  String postData = "lux="   + String(lux)   +
-                    "&t10="  + String(t10)  +
-                    "&h10="  + String(h10)  +
-                    "&hum10="+ String(hum10)+
-                    "&tmp10="+ String(tmp10)+
-                    "&ph10=" + String(ph10) +
-                    "&ec="   + String(ec)   +
-                    "&n="    + String(n)    +
-                    "&p="    + String(p)    +
-                    "&k="    + String(k)    +
-                    "&lat="  + String(lat, 6) +
-                    "&lon="  + String(lon, 6) +
-                    "&au="   + String(au);
+  Serial.print("GET URL: ");
+  Serial.println(url);
 
-  int httpResponseCode = http.POST(postData);
+  http.begin(url);
 
-  Serial.print("POST Data: ");
-  Serial.println(postData);
-  
-   if (httpResponseCode > 0) {
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
+  // ส่ง GET
+  int httpResponseCode = http.GET();
 
-      String response = http.getString();
-      Serial.println("Server response: " + response);
-    } else {
-      Serial.print("Error code: ");
-      Serial.println(httpResponseCode);
-    }
+  if (httpResponseCode > 0) {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
 
-    http.end();
+    String response = http.getString();
+    Serial.println("Server response: " + response);
   } else {
-    Serial.println("WiFi Disconnected");
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
   }
+
+  http.end();
+} else {
+  Serial.println("WiFi Disconnected");
+}
+
  }
+
+ void initWiFi() {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+  }
 }
