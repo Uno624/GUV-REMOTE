@@ -9,8 +9,7 @@ if ($conn->connect_error) {
     die("Connection failed: " . $conn->connect_error);
 }
 
-// รับค่าจาก ESP32 (POST)
-// ให้ใช้ชื่อ key แบบมีความหมายชัดเจนทั้งหมด
+// รับค่าจาก ESP32 (GET)
 $lux          = $_GET['lux'];
 $airtmp       = $_GET['airtmp'];
 $airhum       = $_GET['airhum'];
@@ -25,7 +24,7 @@ $lat          = $_GET['lat'];
 $lon          = $_GET['lon'];
 $au           = $_GET['au'];
 
-// **** อย่าลืมสร้างตาราง sensor_data ให้มีชื่อคอลัมน์ตรงกับด้านล่างนี้ ****
+// สร้างตาราง sensor_data ให้มีชื่อคอลัมน์ตรงกับด้านล่างนี้
 $sql = "INSERT INTO sensor_data
         (lux, airtmp, airhum, soilhum, soiltmp, soilph, soilec, soiln, soilp, soilk, lat, lon, au)
         VALUES
@@ -39,3 +38,4 @@ if ($conn->query($sql) === TRUE) {
 
 $conn->close();
 ?>
+
