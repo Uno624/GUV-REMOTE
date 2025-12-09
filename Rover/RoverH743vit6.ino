@@ -369,10 +369,10 @@ void loop() {
         }//else{ dataTX.lux = 999*10; }
 
         if (result == node.ku8MBSuccess) {
-        dataTX.hum10 = (int16_t) (node.getResponseBuffer(0)*10.0f);
-        dataTX.tmp10 = (int16_t) (node.getResponseBuffer(1)*10.0f);
+        dataTX.hum10 = (int16_t) (node.getResponseBuffer(0)*100.0f);
+        dataTX.tmp10 = (int16_t) (node.getResponseBuffer(1)*100.0f);
         dataTX.ec    = (int16_t) (node.getResponseBuffer(2)*10.0f);
-        dataTX.ph10  = (int16_t) (node.getResponseBuffer(3)*10.0f);
+        dataTX.ph10  = (int16_t) (node.getResponseBuffer(3)*100.0f);
         dataTX.n     = (int16_t) (node.getResponseBuffer(4)*10.0f);
         dataTX.p     = (int16_t) (node.getResponseBuffer(5)*10.0f);
         dataTX.k     = (int16_t) (node.getResponseBuffer(6)*10.0f);} 
